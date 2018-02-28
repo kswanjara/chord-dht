@@ -1,0 +1,10 @@
+Project 1.2 (Individual): Implement Chord distributed hash table (10%)
+•	Model elements that you will need in developing Chord, for example, object classes for providing structured format for data object.
+•	Create a network of n=24=16 nodes (Docker containers) as an example; your code, including the finger table, should be flexible for any number of nodes. In production system, it is often n=2256. In this assignment, NodeID = hash(i), where i=1...16. Remember, hash(1) is not necessary less than hash(16). You will need a registration server (with a hashmap data structure) to remember the list of nodes that are online. 
+•	Implement a Chord DHT using these nodes
+•	Create files with the hash code and insert these files from a node. The placement of files should be according to how Chord works.
+•	Write code to address fault-tolerance when nodes join and leave; that is, moving files around
+•	Demonstrate the ability to perform query of the files from any node
+•	Testing procedures for the Chord functionalities:
+o	With 5 random nodes on the network, add/remove a node and show the finger table from a node
+o	Place a file into the network and query the file when there is a change of nodes in the network
