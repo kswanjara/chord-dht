@@ -5,10 +5,7 @@ import java.rmi.RemoteException;
 
 import ds.chord.common.dto.ClientMetaData;
 
-public interface ServerClientInterface extends Remote {
+public interface ServerInterface extends Remote {
 	// Methods Client --> Server
 	public String connectToServer(String message) throws RemoteException;
-
-	// Methods Server --> Client
-	public boolean notifyClient(ClientMetaData clientMetaData) throws RemoteException;
 }
