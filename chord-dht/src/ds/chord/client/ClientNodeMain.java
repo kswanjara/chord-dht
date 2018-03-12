@@ -1,13 +1,21 @@
-package ds.chord.server;
+package ds.chord.client;
 
 import java.io.IOException;
 import java.util.Properties;
 
-public class CentralHubMain {
+import ds.chord.common.ServerClientInterface;
+import ds.chord.common.dto.ClientMetaData;
+import ds.chord.server.CentralHubMain;
+
+public class ClientNodeMain {
+
 	private static Properties props;
 
-	public static void main(String[] args) {
+	private ServerClientInterface serverRef;
 
+	public static void main(String[] args) {
+		getServerReference();
+		ClientMetaData metaData = connectToServer();
 	}
 
 	/**
@@ -29,5 +37,4 @@ public class CentralHubMain {
 			e.printStackTrace();
 		}
 	}
-
 }
