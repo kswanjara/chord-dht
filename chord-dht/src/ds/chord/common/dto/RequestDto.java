@@ -14,6 +14,7 @@ public class RequestDto implements Serializable {
 	private String communicationType;
 	private List<CommunicationDto> pathTaken;
 	private int hopsReq;
+	private boolean valPresent = false;
 
 	/**
 	 * @return the fileNum
@@ -126,6 +127,14 @@ public class RequestDto implements Serializable {
 
 	public void setHopsReq(int hopsReq) {
 		this.hopsReq = hopsReq;
+	}
+
+	public boolean isValPresent() {
+		return valPresent;
+	}
+
+	public void setValPresent(boolean valPresent) {
+		this.valPresent = valPresent;
 	}
 
 }

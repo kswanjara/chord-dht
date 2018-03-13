@@ -122,7 +122,32 @@ public class ClientNodeMain extends UnicastRemoteObject implements ClientInterfa
 		// return destination;
 	}
 
-	private void lookUpFile(int fileNum) {
+	private void lookUpFile(int fileNum) throws RemoteException {
+		int totalNodes = (int) Math.pow(2, this.metaData.getFingerTable().size());
+		int idealNode = fileNum % totalNodes;
+
+		int current = this.metaData.getPosition();
+
+		int hopsReq = 0;
+
+		if (idealNode > current) {
+			hopsReq = idealNode - current;
+		} else if (idealNode < current) {
+			hopsReq = (totalNodes - current) + idealNode;
+		}
+
+		RequestDto request = new RequestDto();
+		request.setFileNum(fileNum);
+		request.setHopsTaken(0);
+		request.setPathTaken(new ArrayList<CommunicationDto>());
+		request.setIdealNode(idealNode);
+		request.setRequestSource(this.metaData.getCommunicationDto());
+		request.setRequestor(current);
+		request.setCommunicationType("LOOKUP");
+		request.setHopsReq(hopsReq);
+
+		routeReq(request);
+
 	}
 
 	private String registerClientObject(int nodeId) {
@@ -237,8 +262,14 @@ public class ClientNodeMain extends UnicastRemoteObject implements ClientInterfa
 			forwardRequest(nextHop, requestDto);
 
 		} else {
-			this.metaData.getFileNumHolder().add(requestDto.getFileNum());
 			requestDto.getPathTaken().add(this.metaData.getCommunicationDto());
+			if (requestDto.getCommunicationType().equalsIgnoreCase("UPLOAD")) {
+				this.metaData.getFileNumHolder().add(requestDto.getFileNum());
+			} else {
+				if (this.metaData.getFileNumHolder().contains(requestDto.getFileNum())) {
+					requestDto.setValPresent(true);
+				}
+			}
 			sendConfirmationToSource(requestDto);
 		}
 	}
@@ -258,7 +289,11 @@ public class ClientNodeMain extends UnicastRemoteObject implements ClientInterfa
 	private void sendConfirmationToSource(RequestDto requestDto) {
 		// TODO Auto-generated method stub
 		if (this.metaData.getPosition() == requestDto.getRequestSource().getPositionId()) {
-			System.out.println("Uploaded the file on the same node.");
+			if (requestDto.getCommunicationType().equalsIgnoreCase("upload")) {
+				System.out.println("Uploaded the file on the same node.");
+			} else {
+				System.out.println("File found on the same node.");
+			}
 		} else {
 			// send the confirmation from final(this) to node to source node
 			try {
@@ -277,10 +312,22 @@ public class ClientNodeMain extends UnicastRemoteObject implements ClientInterfa
 
 	@Override
 	public void messageFromFinalNode(RequestDto requestDto) throws RemoteException {
-		System.out.print("Path taken: ");
 		if (requestDto.getCommunicationType().equalsIgnoreCase("UPLOAD")) {
+			System.out.print("Path taken while uploading: ");
 			for (CommunicationDto path : requestDto.getPathTaken()) {
 				System.out.print(path.getNodeId() + "( position: " + path.getPositionId() + " )  ");
+			}
+		} else {
+			System.out.print("Path taken while lookup: ");
+			for (CommunicationDto path : requestDto.getPathTaken()) {
+				System.out.print(path.getNodeId() + "( position: " + path.getPositionId() + " )  ");
+			}
+			if (requestDto.isValPresent()) {
+				System.out.println();
+				System.out.println("File found at : "
+						+ requestDto.getPathTaken().get(requestDto.getPathTaken().size() - 1).getNodeId());
+			} else {
+				System.out.println("File not available anywhere on the network!");
 			}
 		}
 	}
