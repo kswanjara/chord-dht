@@ -1,7 +1,9 @@
 package ds.chord.common.dto;
 
 import java.io.Serializable;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 public class ClientMetaData implements Serializable {
 	private static final long serialVersionUID = 3174920282163972987L;
@@ -13,6 +15,7 @@ public class ClientMetaData implements Serializable {
 	private CommunicationDto communicationDto;
 	private Map<Integer, CommunicationDto> fingerTable;
 	private boolean online;
+	private Set<Integer> fileNumHolder = new HashSet<Integer>();
 
 	/**
 	 * @return the added
@@ -134,6 +137,14 @@ public class ClientMetaData implements Serializable {
 
 	public void setOnline(boolean online) {
 		this.online = online;
+	}
+
+	public Set<Integer> getFileNumHolder() {
+		return fileNumHolder;
+	}
+
+	public void setFileNumHolder(Set<Integer> fileNumHolder) {
+		this.fileNumHolder = fileNumHolder;
 	}
 
 }
