@@ -6,7 +6,6 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
-import java.sql.ClientInfoStatus;
 import java.util.HashMap;
 import java.util.Properties;
 import java.util.Scanner;
@@ -36,6 +35,7 @@ public class CentralHubMain extends UnicastRemoteObject implements ServerInterfa
 		try {
 			System.out.println("How many nodes should be in the network? (2^?) ");
 
+			@SuppressWarnings("resource")
 			Scanner sc = new Scanner(System.in);
 
 			int n = sc.nextInt();
@@ -93,7 +93,7 @@ public class CentralHubMain extends UnicastRemoteObject implements ServerInterfa
 
 		dto.setNodeId(metaData.getNodeId());
 		dto.setPositionId(metaData.getPosition());
-		dto.setObjectReference("ClientReference" + metaData.getPosition());
+		// dto.setObjectReference("ClientReference" + metaData.getPosition());
 
 		metaData.setCommunicationDto(dto);
 
@@ -139,16 +139,15 @@ public class CentralHubMain extends UnicastRemoteObject implements ServerInterfa
 
 	private void notifyClient(ClientMetaData node) {
 		// notify the client about updated finger table
-		// try {
-		// Registry registry =
-		// LocateRegistry.getRegistry(node.getCommunicationDto().getIp(),
-		// node.getCommunicationDto().getPort());
-		// ClientInterface clientRef = (ClientInterface) registry
-		// .lookup(node.getCommunicationDto().getObjectReference());
-		// clientRef.notifyClient(node);
-		// } catch (RemoteException | NotBoundException e) {
-		// e.printStackTrace();
-		// }
+		try {
+			Registry registry = LocateRegistry.getRegistry(node.getCommunicationDto().getIp(),
+					node.getCommunicationDto().getPort());
+			ClientInterface clientRef = (ClientInterface) registry
+					.lookup(node.getCommunicationDto().getObjectReference());
+			clientRef.notifyClient(node);
+		} catch (RemoteException | NotBoundException e) {
+			e.printStackTrace();
+		}
 
 	}
 
@@ -175,13 +174,6 @@ public class CentralHubMain extends UnicastRemoteObject implements ServerInterfa
 			return true;
 		}
 		return false;
-	}
-
-	private int hash(int nodeId) {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + nodeId;
-		return result;
 	}
 
 }

@@ -15,10 +15,11 @@ public class CommunicationDto implements Serializable {
 	 * @param ip
 	 * @param port
 	 */
-	public CommunicationDto(String ip, int port) {
+	public CommunicationDto(String ip, int port, String ObjectReference) {
 		super();
 		this.ip = ip;
 		this.port = port;
+		this.ObjectReference = ObjectReference;
 	}
 
 	/**
