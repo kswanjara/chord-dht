@@ -1,12 +1,14 @@
 package ds.chord.client;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.util.Properties;
+import java.util.Scanner;
 
 import ds.chord.common.ServerInterface;
 import ds.chord.common.dto.ClientMetaData;
@@ -18,25 +20,45 @@ public class ClientNodeMain {
 
 	private ServerInterface serverRef;
 
+	private ClientMetaData metaData;
+
 	public static void main(String[] args) {
-		loadProperties();
-		ClientNodeMain node = new ClientNodeMain();
-		node.getServerReference();
-		ClientMetaData metaData = node.connectToServer();
+		try {
+			loadProperties();
+
+			Scanner sc = new Scanner(System.in);
+
+			ClientNodeMain node = new ClientNodeMain();
+			node.getServerReference();
+
+			System.out.println("Enter the NodeID : ");
+			int nodeId = sc.nextInt();
+
+			node.metaData = new ClientMetaData();
+
+			node.metaData.setNodeId(nodeId);
+			node.metaData.setIp(InetAddress.getLocalHost().getHostAddress().trim());
+			node.metaData.setPort(Integer.parseInt(props.getProperty("client.port.number")));
+			node.metaData = node.connectToServer(node.metaData);
+
+		} catch (UnknownHostException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
-	private ClientMetaData connectToServer() {
+	private ClientMetaData connectToServer(ClientMetaData metaData) {
 		try {
 			System.out.println("Notifying server...");
 			// ClientMetaData metaData = this.serverRef.connectToServer("I am new here!");
-			String metaData = this.serverRef.connectToServer("I am new here!");
+			this.metaData = this.serverRef.connectToServer(metaData);
 			System.out.println("Got NodeId for myself from server: " + metaData);
 			// return metaData;
 		} catch (RemoteException e) {
 			System.out.println("Exception: Occured while notifying server first time coming online!");
 			e.printStackTrace();
 		}
-		return null;
+		return metaData;
 	}
 
 	private void getServerReference() {
@@ -67,11 +89,6 @@ public class ClientNodeMain {
 	 */
 	private static void loadProperties() {
 		try {
-			/*
-			 * String appConfigPath = System.getProperty("java.class.path") +
-			 * System.getProperty("file.separator") + "application.properties";
-			 */
-
 			props = new Properties();
 			props.load(CentralHubMain.class.getClassLoader().getResourceAsStream("application.properties"));
 		} catch (IOException e) {

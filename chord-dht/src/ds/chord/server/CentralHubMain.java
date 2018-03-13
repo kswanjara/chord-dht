@@ -1,17 +1,20 @@
 package ds.chord.server;
 
 import java.io.IOException;
-import java.rmi.AlreadyBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.Properties;
+import java.util.Scanner;
 
 import ds.chord.common.ServerInterface;
+import ds.chord.common.dto.ClientMetaData;
 
 public class CentralHubMain extends UnicastRemoteObject implements ServerInterface {
 	private static final long serialVersionUID = 4011425218883307369L;
+
+	private static DataManager dataManager;
 
 	protected CentralHubMain() throws RemoteException {
 		// super();
@@ -26,13 +29,17 @@ public class CentralHubMain extends UnicastRemoteObject implements ServerInterfa
 
 	private static void registerServerObject() {
 		try {
+			System.out.println("How many nodes should be in the network? (2^?) ");
+
+			Scanner sc = new Scanner(System.in);
+
+			int n = sc.nextInt();
+
+			dataManager = new DataManager(n);
+
 			ServerInterface serverObj = new CentralHubMain();
 			int portNumber = Integer.parseInt(props.getProperty("server.port.number"));
 			String serverReferenceName = props.getProperty("server.rmi.reference");
-
-			ServerInterface stub;
-			// stub = (ServerInterface) UnicastRemoteObject.exportObject(serverObj,
-			// portNumber);
 
 			System.out.println("Server started. Listening on Port");
 
@@ -42,7 +49,6 @@ public class CentralHubMain extends UnicastRemoteObject implements ServerInterfa
 
 			System.err.println("Server ready");
 		} catch (RemoteException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
@@ -54,22 +60,76 @@ public class CentralHubMain extends UnicastRemoteObject implements ServerInterfa
 	 */
 	private static void loadProperties() {
 		try {
-			/*
-			 * String appConfigPath = System.getProperty("java.class.path") +
-			 * System.getProperty("file.separator") + "application.properties";
-			 */
-
 			props = new Properties();
 			props.load(CentralHubMain.class.getClassLoader().getResourceAsStream("application.properties"));
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
 
 	@Override
-	public String connectToServer(String message) throws RemoteException {
-		// TODO Auto-generated method stub
-		return "Node" + (int) Math.random() * 100;
+	public ClientMetaData connectToServer(ClientMetaData metaData) throws RemoteException {
+		int position = hash(metaData.getNodeId()) % dataManager.getNodeData().length;
+		int newPosition = position;
+		boolean alreadyUsed = checkIfAlreadyUsed(position);
+		if (alreadyUsed) {
+			newPosition = handleCollision(position);
+			if (position == newPosition) {
+				System.out.println("Can't accomodate more nodes in the network!");
+				metaData.setAdded(false);
+				metaData.setMessage("Can't accomodate more nodes in the network!");
+				return metaData;
+			}
+		}
+		metaData.setPosition(position);
+		metaData.setAdded(true);
+		metaData = getFingerTable(metaData);
+		return metaData;
 	}
+
+	private ClientMetaData getFingerTable(ClientMetaData metaData) {
+
+		for (int i = 0; i < dataManager.getPower(); i++) {
+			int hop = (int) Math.pow(2, i);
+			int succesor = (metaData.getPosition() + hop) % dataManager.getNodeData().length;
+			ClientMetaData successorObj = dataManager.getNodeData()[succesor];
+			if (successorObj == null) {
+				successorObj = getSuccessorObj(succesor);
+			}
+		}
+		return metaData;
+	}
+
+	private ClientMetaData getSuccessorObj(int succesor) {
+		for (int i = succesor + 1; i != succesor; i = ((i + 1) % dataManager.getNodeData().length)) {
+			if (dataManager.getNodeData()[i] != null)
+				return dataManager.getNodeData()[i];
+		}
+		return null;
+	}
+
+	private int handleCollision(int position) {
+		int current = position;
+		int netCap = dataManager.getNodeData().length;
+		position = (position + 1) % netCap;
+		while (position != current && dataManager.getNodeData()[position] == null) {
+			position = (position + 1) % netCap;
+		}
+		return position;
+	}
+
+	private boolean checkIfAlreadyUsed(int position) {
+		if (dataManager.getNodeData()[position] != null) {
+			return true;
+		}
+		return false;
+	}
+
+	private int hash(int nodeId) {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + nodeId;
+		return result;
+	}
+
 }
