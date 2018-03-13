@@ -1,15 +1,20 @@
 package ds.chord.server;
 
 import java.io.IOException;
+import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
+import java.sql.ClientInfoStatus;
+import java.util.HashMap;
 import java.util.Properties;
 import java.util.Scanner;
 
+import ds.chord.common.ClientInterface;
 import ds.chord.common.ServerInterface;
 import ds.chord.common.dto.ClientMetaData;
+import ds.chord.common.dto.CommunicationDto;
 
 public class CentralHubMain extends UnicastRemoteObject implements ServerInterface {
 	private static final long serialVersionUID = 4011425218883307369L;
@@ -69,7 +74,7 @@ public class CentralHubMain extends UnicastRemoteObject implements ServerInterfa
 
 	@Override
 	public ClientMetaData connectToServer(ClientMetaData metaData) throws RemoteException {
-		int position = hash(metaData.getNodeId()) % dataManager.getNodeData().length;
+		int position = metaData.getNodeId() % dataManager.getNodeData().length;
 		int newPosition = position;
 		boolean alreadyUsed = checkIfAlreadyUsed(position);
 		if (alreadyUsed) {
@@ -83,21 +88,68 @@ public class CentralHubMain extends UnicastRemoteObject implements ServerInterfa
 		}
 		metaData.setPosition(position);
 		metaData.setAdded(true);
+
+		CommunicationDto dto = metaData.getCommunicationDto();
+
+		dto.setNodeId(metaData.getNodeId());
+		dto.setPositionId(metaData.getPosition());
+		dto.setObjectReference("ClientReference" + metaData.getPosition());
+
+		metaData.setCommunicationDto(dto);
+
 		metaData = getFingerTable(metaData);
+
+		dataManager.getNodeData()[metaData.getPosition()] = metaData;
+
+		updateOtherNodes(metaData);
+
 		return metaData;
 	}
 
 	private ClientMetaData getFingerTable(ClientMetaData metaData) {
-
-		for (int i = 0; i < dataManager.getPower(); i++) {
-			int hop = (int) Math.pow(2, i);
-			int succesor = (metaData.getPosition() + hop) % dataManager.getNodeData().length;
-			ClientMetaData successorObj = dataManager.getNodeData()[succesor];
-			if (successorObj == null) {
-				successorObj = getSuccessorObj(succesor);
+		metaData.setFingerTable(new HashMap<>());
+		if (dataManager.isEmpty()) {
+			for (int i = 0; i < dataManager.getPower(); i++) {
+				int hop = (int) Math.pow(2, i);
+				metaData.getFingerTable().put(hop, metaData.getCommunicationDto());
+			}
+			dataManager.setEmpty(false);
+		} else {
+			for (int i = 0; i < dataManager.getPower(); i++) {
+				int hop = (int) Math.pow(2, i);
+				int succesor = (metaData.getPosition() + hop) % dataManager.getNodeData().length;
+				ClientMetaData nextObj = dataManager.getNodeData()[succesor];
+				if (nextObj == null) {
+					nextObj = getSuccessorObj(succesor);
+				}
+				metaData.getFingerTable().put(hop, nextObj.getCommunicationDto());
 			}
 		}
 		return metaData;
+	}
+
+	private void updateOtherNodes(ClientMetaData metaData) {
+		for (ClientMetaData node : dataManager.getNodeData()) {
+			if (node != null && node.getPosition() != metaData.getPosition()) {
+				node = getFingerTable(node);
+				notifyClient(node);
+			}
+		}
+	}
+
+	private void notifyClient(ClientMetaData node) {
+		// notify the client about updated finger table
+		// try {
+		// Registry registry =
+		// LocateRegistry.getRegistry(node.getCommunicationDto().getIp(),
+		// node.getCommunicationDto().getPort());
+		// ClientInterface clientRef = (ClientInterface) registry
+		// .lookup(node.getCommunicationDto().getObjectReference());
+		// clientRef.notifyClient(node);
+		// } catch (RemoteException | NotBoundException e) {
+		// e.printStackTrace();
+		// }
+
 	}
 
 	private ClientMetaData getSuccessorObj(int succesor) {

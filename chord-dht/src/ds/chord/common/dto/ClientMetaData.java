@@ -8,12 +8,11 @@ public class ClientMetaData implements Serializable {
 
 	private int nodeId;
 	private int position;
-	private String ObjectReference;
-	private String ip;
-	private int port;
 	private boolean added;
 	private String message;
-	private Map<Integer, ClientMetaData> fingerTable;
+	private CommunicationDto communicationDto;
+	private Map<Integer, CommunicationDto> fingerTable;
+	private boolean online;
 
 	/**
 	 * @return the added
@@ -53,41 +52,11 @@ public class ClientMetaData implements Serializable {
 	}
 
 	/**
-	 * @return the ip
-	 */
-	public String getIp() {
-		return ip;
-	}
-
-	/**
-	 * @return the port
-	 */
-	public int getPort() {
-		return port;
-	}
-
-	/**
 	 * @param position
 	 *            the position to set
 	 */
 	public void setPosition(int position) {
 		this.position = position;
-	}
-
-	/**
-	 * @param ip
-	 *            the ip to set
-	 */
-	public void setIp(String ip) {
-		this.ip = ip;
-	}
-
-	/**
-	 * @param port
-	 *            the port to set
-	 */
-	public void setPort(int port) {
-		this.port = port;
 	}
 
 	/**
@@ -98,13 +67,6 @@ public class ClientMetaData implements Serializable {
 	}
 
 	/**
-	 * @return the objectReference
-	 */
-	public String getObjectReference() {
-		return ObjectReference;
-	}
-
-	/**
 	 * @param nodeId
 	 *            the nodeId to set
 	 */
@@ -112,12 +74,20 @@ public class ClientMetaData implements Serializable {
 		this.nodeId = nodeId;
 	}
 
-	/**
-	 * @param objectReference
-	 *            the objectReference to set
-	 */
-	public void setObjectReference(String objectReference) {
-		ObjectReference = objectReference;
+	public Map<Integer, CommunicationDto> getFingerTable() {
+		return fingerTable;
+	}
+
+	public void setFingerTable(Map<Integer, CommunicationDto> fingerTable) {
+		this.fingerTable = fingerTable;
+	}
+
+	public CommunicationDto getCommunicationDto() {
+		return communicationDto;
+	}
+
+	public void setCommunicationDto(CommunicationDto communicationDto) {
+		this.communicationDto = communicationDto;
 	}
 
 	/*
@@ -129,9 +99,8 @@ public class ClientMetaData implements Serializable {
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((ip == null) ? 0 : ip.hashCode());
+		result = prime * result + ((communicationDto == null) ? 0 : communicationDto.hashCode());
 		result = prime * result + nodeId;
-		result = prime * result + port;
 		return result;
 	}
 
@@ -149,24 +118,22 @@ public class ClientMetaData implements Serializable {
 		if (getClass() != obj.getClass())
 			return false;
 		ClientMetaData other = (ClientMetaData) obj;
-		if (ip == null) {
-			if (other.ip != null)
+		if (communicationDto == null) {
+			if (other.communicationDto != null)
 				return false;
-		} else if (!ip.equals(other.ip))
+		} else if (!communicationDto.equals(other.communicationDto))
 			return false;
 		if (nodeId != other.nodeId)
-			return false;
-		if (port != other.port)
 			return false;
 		return true;
 	}
 
-	public Map<Integer, ClientMetaData> getFingerTable() {
-		return fingerTable;
+	public boolean isOnline() {
+		return online;
 	}
 
-	public void setFingerTable(Map<Integer, ClientMetaData> fingerTable) {
-		this.fingerTable = fingerTable;
+	public void setOnline(boolean online) {
+		this.online = online;
 	}
 
 }

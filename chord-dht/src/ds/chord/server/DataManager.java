@@ -12,12 +12,14 @@ public class DataManager implements Serializable {
 	 */
 	public DataManager(int power) {
 		super();
+		this.empty = true;
 		this.setPower(power);
 		this.nodeData = new ClientMetaData[(int) Math.pow(2, power)];
 	}
 
 	private ClientMetaData[] nodeData;
 	private int power;
+	private boolean empty;
 
 	/**
 	 * @return the nodeData
@@ -40,6 +42,14 @@ public class DataManager implements Serializable {
 
 	public void setPower(int power) {
 		this.power = power;
+	}
+
+	public boolean isEmpty() {
+		return empty;
+	}
+
+	public void setEmpty(boolean empty) {
+		this.empty = empty;
 	}
 
 }

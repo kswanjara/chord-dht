@@ -12,6 +12,7 @@ import java.util.Scanner;
 
 import ds.chord.common.ServerInterface;
 import ds.chord.common.dto.ClientMetaData;
+import ds.chord.common.dto.CommunicationDto;
 import ds.chord.server.CentralHubMain;
 
 public class ClientNodeMain {
@@ -37,9 +38,16 @@ public class ClientNodeMain {
 			node.metaData = new ClientMetaData();
 
 			node.metaData.setNodeId(nodeId);
-			node.metaData.setIp(InetAddress.getLocalHost().getHostAddress().trim());
-			node.metaData.setPort(Integer.parseInt(props.getProperty("client.port.number")));
-			node.metaData = node.connectToServer(node.metaData);
+
+			CommunicationDto dto = new CommunicationDto(InetAddress.getLocalHost().getHostAddress().trim(),
+					Integer.parseInt(props.getProperty("client.port.number")));
+
+			node.metaData.setCommunicationDto(dto);
+			node.metaData.setOnline(true);
+
+			node.connectToServer(node.metaData);
+
+			node.printFingerTable();
 
 		} catch (UnknownHostException e) {
 			// TODO Auto-generated catch block
@@ -47,18 +55,26 @@ public class ClientNodeMain {
 		}
 	}
 
-	private ClientMetaData connectToServer(ClientMetaData metaData) {
+	private void printFingerTable() {
+		for (Integer key : this.metaData.getFingerTable().keySet()) {
+			System.out.println(
+					"Hop : " + key + " Successor: " + this.metaData.getFingerTable().get(key).getObjectReference());
+		}
+	}
+
+	private void connectToServer(ClientMetaData metaData) {
 		try {
 			System.out.println("Notifying server...");
 			// ClientMetaData metaData = this.serverRef.connectToServer("I am new here!");
 			this.metaData = this.serverRef.connectToServer(metaData);
-			System.out.println("Got NodeId for myself from server: " + metaData);
-			// return metaData;
+			System.out.println(
+					"Got NodeId for myself from server: " + metaData.getCommunicationDto().getObjectReference());
+			// return this.metaData;
 		} catch (RemoteException e) {
 			System.out.println("Exception: Occured while notifying server first time coming online!");
 			e.printStackTrace();
 		}
-		return metaData;
+		// return metaData;
 	}
 
 	private void getServerReference() {
