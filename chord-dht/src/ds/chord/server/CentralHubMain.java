@@ -6,9 +6,9 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
-import java.util.HashMap;
 import java.util.Properties;
 import java.util.Scanner;
+import java.util.TreeMap;
 
 import ds.chord.common.ClientInterface;
 import ds.chord.common.ServerInterface;
@@ -107,7 +107,7 @@ public class CentralHubMain extends UnicastRemoteObject implements ServerInterfa
 	}
 
 	private ClientMetaData getFingerTable(ClientMetaData metaData) {
-		metaData.setFingerTable(new HashMap<>());
+		metaData.setFingerTable(new TreeMap<>());
 		if (dataManager.isEmpty()) {
 			for (int i = 0; i < dataManager.getPower(); i++) {
 				int hop = (int) Math.pow(2, i);
@@ -152,7 +152,8 @@ public class CentralHubMain extends UnicastRemoteObject implements ServerInterfa
 	}
 
 	private ClientMetaData getSuccessorObj(int succesor) {
-		for (int i = succesor + 1; i != succesor; i = ((i + 1) % dataManager.getNodeData().length)) {
+		for (int i = (succesor + 1) % dataManager.getNodeData().length; i != succesor; i = ((i + 1)
+				% dataManager.getNodeData().length)) {
 			if (dataManager.getNodeData()[i] != null)
 				return dataManager.getNodeData()[i];
 		}

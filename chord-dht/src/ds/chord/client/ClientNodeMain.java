@@ -9,6 +9,7 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
+import java.util.NavigableSet;
 import java.util.Properties;
 import java.util.Scanner;
 import java.util.TreeSet;
@@ -161,16 +162,13 @@ public class ClientNodeMain extends UnicastRemoteObject implements ClientInterfa
 	private void connectToServer(ClientMetaData metaData) {
 		try {
 			System.out.println("Notifying server...");
-			// ClientMetaData metaData = this.serverRef.connectToServer("I am new here!");
 			this.metaData = this.serverRef.connectToServer(metaData);
 			System.out.println(
 					"Got NodeId for myself from server: " + metaData.getCommunicationDto().getObjectReference());
-			// return this.metaData;
 		} catch (RemoteException e) {
 			System.out.println("Exception: Occured while notifying server first time coming online!");
 			e.printStackTrace();
 		}
-		// return metaData;
 	}
 
 	private void getServerReference() {
@@ -201,7 +199,6 @@ public class ClientNodeMain extends UnicastRemoteObject implements ClientInterfa
 			props = new Properties();
 			props.load(CentralHubMain.class.getClassLoader().getResourceAsStream("application.properties"));
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
@@ -215,7 +212,6 @@ public class ClientNodeMain extends UnicastRemoteObject implements ClientInterfa
 	}
 
 	public void updateFingerTable(ClientMetaData clientMetaData) {
-		// System.out.println(this.props.getProperty("client.ip"));
 		this.metaData.setFingerTable(clientMetaData.getFingerTable());
 	}
 
@@ -223,7 +219,7 @@ public class ClientNodeMain extends UnicastRemoteObject implements ClientInterfa
 	public void routeReq(RequestDto requestDto) throws RemoteException {
 		if (requestDto.getHopsReq() > 0) {
 			// take necessary hops and routeReq method
-			TreeSet<Integer> keys = (TreeSet<Integer>) this.metaData.getFingerTable().keySet();
+			NavigableSet<Integer> keys = (NavigableSet<Integer>) this.metaData.getFingerTable().keySet();
 			CommunicationDto nextHop = this.metaData.getFingerTable().get(keys.floor(requestDto.getHopsReq()));
 			int hopsTaken = 0;
 			if (nextHop.getPositionId() > requestDto.getRequestor()) {
@@ -242,14 +238,9 @@ public class ClientNodeMain extends UnicastRemoteObject implements ClientInterfa
 
 		} else {
 			this.metaData.getFileNumHolder().add(requestDto.getFileNum());
+			requestDto.getPathTaken().add(this.metaData.getCommunicationDto());
 			sendConfirmationToSource(requestDto);
-			// if (this.metaData.getPosition() ==
-			// requestDto.getRequestSource().getPositionId()) {
-			// return requestDto.getRequestSource();
-			// } else {
-			// }
 		}
-		// return null;
 	}
 
 	private void forwardRequest(CommunicationDto nextHop, RequestDto requestDto) {
@@ -275,7 +266,7 @@ public class ClientNodeMain extends UnicastRemoteObject implements ClientInterfa
 						requestDto.getRequestSource().getPort());
 				ClientInterface clientRef = (ClientInterface) registry
 						.lookup(requestDto.getRequestSource().getObjectReference());
-				clientRef.routeReq(requestDto);
+				clientRef.messageFromFinalNode(requestDto);
 			} catch (RemoteException e) {
 				e.printStackTrace();
 			} catch (NotBoundException e) {
@@ -284,4 +275,13 @@ public class ClientNodeMain extends UnicastRemoteObject implements ClientInterfa
 		}
 	}
 
+	@Override
+	public void messageFromFinalNode(RequestDto requestDto) throws RemoteException {
+		System.out.print("Path taken: ");
+		if (requestDto.getCommunicationType().equalsIgnoreCase("UPLOAD")) {
+			for (CommunicationDto path : requestDto.getPathTaken()) {
+				System.out.print(path.getNodeId() + "( position: " + path.getPositionId() + " )  ");
+			}
+		}
+	}
 }

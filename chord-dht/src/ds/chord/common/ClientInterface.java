@@ -12,4 +12,6 @@ public interface ClientInterface extends Remote {
 	public boolean notifyClient(ClientMetaData clientMetaData) throws RemoteException;
 
 	public void routeReq(RequestDto requestDto) throws RemoteException;
+
+	public void messageFromFinalNode(RequestDto requestDto) throws RemoteException;
 }
