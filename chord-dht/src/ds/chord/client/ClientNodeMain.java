@@ -9,10 +9,12 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import java.util.NavigableSet;
 import java.util.Properties;
 import java.util.Scanner;
-import java.util.TreeSet;
+import java.util.Set;
 
 import ds.chord.common.ClientInterface;
 import ds.chord.common.ServerInterface;
@@ -71,19 +73,37 @@ public class ClientNodeMain extends UnicastRemoteObject implements ClientInterfa
 	private void waitForInput() {
 		try {
 			Scanner sc = new Scanner(System.in);
-			System.out.println("Press 1 for look up: ");
-			System.out.println("Press 2 for uploading file: ");
-			int choice = sc.nextInt();
-			if (choice == 1) {
-				System.out.println("Enter the file number to look up: ");
-				int fileNum = sc.nextInt();
-				this.lookUpFile(fileNum);
-			} else if (choice == 2) {
-				System.out.println("Enter the file number to upload: ");
-				int fileNum = sc.nextInt();
-				this.uploadFile(fileNum);
+			if (this.metaData.isOnline()) {
+				System.out.println("Press 1 for look up: ");
+				System.out.println("Press 2 for uploading file: ");
+				System.out.println("Press 3 to go offline: ");
+				int choice = sc.nextInt();
+				if (choice == 1) {
+					System.out.println("Enter the file number to look up: ");
+					int fileNum = sc.nextInt();
+					this.lookUpFile(fileNum);
+				} else if (choice == 2) {
+					System.out.println("Enter the file number to upload: ");
+					int fileNum = sc.nextInt();
+					this.uploadFile(fileNum);
+				} else if (choice == 3) {
+					sendAllFiles();
+					notifyServer();
+					this.metaData.setOnline(false);
+				} else {
+					System.out.println("Incorrect input! Try again.");
+				}
 			} else {
-				System.out.println("Incorrect input! Try again.");
+				System.out.println("Press 1 to go online: ");
+				int choice = sc.nextInt();
+				if (choice == 1) {
+					this.metaData.setOnline(true);
+					this.connectToServer(this.metaData);
+					this.getFilesBack();
+					System.out.println("You are back online! ");
+				} else {
+					System.out.println("Incorrect input! Try again.");
+				}
 			}
 			waitForInput();
 		} catch (RemoteException e) {
@@ -91,6 +111,44 @@ public class ClientNodeMain extends UnicastRemoteObject implements ClientInterfa
 			e.printStackTrace();
 		}
 
+	}
+
+	private void getFilesBack() {
+		try {
+			Set<Integer> list = this.serverRef.askForFiles(this.metaData);
+			this.metaData.getFileNumHolder().addAll(list);
+			System.out.println("Got back the files: ");
+			for (Integer integer : list) {
+				System.out.print(integer + "  ");
+			}
+			this.metaData.getFileNumHolder().addAll(list);
+
+		} catch (RemoteException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
+	private void notifyServer() {
+		try {
+			this.serverRef.goingOffline(this.metaData);
+		} catch (RemoteException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
+	private void sendAllFiles() {
+		CommunicationDto closestSuccessor = this.metaData.getFingerTable().get(1);
+		try {
+			Registry registry = LocateRegistry.getRegistry(closestSuccessor.getIp(), closestSuccessor.getPort());
+			ClientInterface clientRef = (ClientInterface) registry.lookup(closestSuccessor.getObjectReference());
+			clientRef.holdData(this.metaData.getFileNumHolder());
+		} catch (RemoteException e) {
+			e.printStackTrace();
+		} catch (NotBoundException e) {
+			e.printStackTrace();
+		}
 	}
 
 	private void uploadFile(int fileNum) throws RemoteException {
@@ -292,7 +350,10 @@ public class ClientNodeMain extends UnicastRemoteObject implements ClientInterfa
 			if (requestDto.getCommunicationType().equalsIgnoreCase("upload")) {
 				System.out.println("Uploaded the file on the same node.");
 			} else {
-				System.out.println("File found on the same node.");
+				if (this.metaData.getFileNumHolder().contains(requestDto.getFileNum()))
+					System.out.println("File found on the same node.");
+				else
+					System.out.println("File not available anywhere on the network!");
 			}
 		} else {
 			// send the confirmation from final(this) to node to source node
@@ -330,5 +391,31 @@ public class ClientNodeMain extends UnicastRemoteObject implements ClientInterfa
 				System.out.println("File not available anywhere on the network!");
 			}
 		}
+	}
+
+	@Override
+	public void holdData(Set<Integer> fileNumHolder) throws RemoteException {
+		this.metaData.getFileNumHolder().addAll(fileNumHolder);
+	}
+
+	@Override
+	public Set<Integer> giveFilesBack(List<Integer> list) throws RemoteException {
+		// TODO Auto-generated method stub
+		Set<Integer> availData = this.metaData.getFileNumHolder();
+		Set<Integer> returnData = new HashSet<>();
+		int size = (int) Math.pow(2, this.metaData.getFingerTable().size());
+
+		for (Integer integer : availData) {
+			int modValue = integer % size;
+			if (list.contains(modValue)) {
+				returnData.add(integer);
+			}
+		}
+
+		for (Integer integer : returnData) {
+			this.metaData.getFileNumHolder().remove(integer);
+		}
+
+		return availData;
 	}
 }

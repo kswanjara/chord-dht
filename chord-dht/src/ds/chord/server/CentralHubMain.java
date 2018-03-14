@@ -6,8 +6,11 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 import java.util.Scanner;
+import java.util.Set;
 import java.util.TreeMap;
 
 import ds.chord.common.ClientInterface;
@@ -175,6 +178,47 @@ public class CentralHubMain extends UnicastRemoteObject implements ServerInterfa
 			return true;
 		}
 		return false;
+	}
+
+	@Override
+	public void goingOffline(ClientMetaData metaData) throws RemoteException {
+		// TODO Auto-generated method stub
+		dataManager.getNodeData()[metaData.getPosition()] = null;
+		updateOtherNodes(metaData);
+	}
+
+	@Override
+	public Set<Integer> askForFiles(ClientMetaData metaData) throws RemoteException {
+		try {
+			int i = metaData.getPosition() - 1;
+			if (i < 0) {
+				i = dataManager.getNodeData().length - 1;
+			}
+			for (i = metaData.getPosition() - 1; i != metaData.getPosition(); i--) {
+				if (dataManager.getNodeData()[i] != null) {
+					break;
+				}
+			}
+
+			List<Integer> list = new ArrayList<>();
+
+			for (int j = i + 1; j <= metaData.getPosition(); j = (j + 1) % dataManager.getNodeData().length) {
+				list.add(j);
+			}
+
+			Registry registry = LocateRegistry.getRegistry(metaData.getFingerTable().get(1).getIp(),
+					metaData.getFingerTable().get(1).getPort());
+			ClientInterface clientRef = (ClientInterface) registry
+					.lookup(metaData.getFingerTable().get(1).getObjectReference());
+
+			return clientRef.giveFilesBack(list);
+
+		} catch (NotBoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		return null;
 	}
 
 }
