@@ -61,6 +61,7 @@ public class ClientNodeMain extends UnicastRemoteObject implements ClientInterfa
 			node.connectToServer(node.metaData);
 
 			node.printFingerTable();
+			node.getFilesBack();
 
 			node.waitForInput();
 
@@ -76,7 +77,8 @@ public class ClientNodeMain extends UnicastRemoteObject implements ClientInterfa
 			if (this.metaData.isOnline()) {
 				System.out.println("Press 1 for look up: ");
 				System.out.println("Press 2 for uploading file: ");
-				System.out.println("Press 3 to go offline: ");
+				System.out.println("Press 3 to see all files here: ");
+				System.out.println("Press 4 to go offline: ");
 				int choice = sc.nextInt();
 				if (choice == 1) {
 					System.out.println("Enter the file number to look up: ");
@@ -87,6 +89,12 @@ public class ClientNodeMain extends UnicastRemoteObject implements ClientInterfa
 					int fileNum = sc.nextInt();
 					this.uploadFile(fileNum);
 				} else if (choice == 3) {
+					System.out.println("Files available: ");
+					for (Integer integer : this.metaData.getFileNumHolder()) {
+						System.out.print(integer + "  ");
+					}
+					System.out.println();
+				} else if (choice == 4) {
 					sendAllFiles();
 					notifyServer();
 					this.metaData.setOnline(false);
@@ -99,6 +107,7 @@ public class ClientNodeMain extends UnicastRemoteObject implements ClientInterfa
 				if (choice == 1) {
 					this.metaData.setOnline(true);
 					this.connectToServer(this.metaData);
+
 					this.getFilesBack();
 					System.out.println("You are back online! ");
 				} else {
@@ -116,12 +125,15 @@ public class ClientNodeMain extends UnicastRemoteObject implements ClientInterfa
 	private void getFilesBack() {
 		try {
 			Set<Integer> list = this.serverRef.askForFiles(this.metaData);
-			this.metaData.getFileNumHolder().addAll(list);
-			System.out.println("Got back the files: ");
-			for (Integer integer : list) {
-				System.out.print(integer + "  ");
+
+			if (list != null) {
+				this.metaData.getFileNumHolder().addAll(list);
+				System.out.println("Got back the files: ");
+				for (Integer integer : list) {
+					System.out.print(integer + "  ");
+				}
+				this.metaData.getFileNumHolder().addAll(list);
 			}
-			this.metaData.getFileNumHolder().addAll(list);
 
 		} catch (RemoteException e) {
 			// TODO Auto-generated catch block
@@ -398,9 +410,9 @@ public class ClientNodeMain extends UnicastRemoteObject implements ClientInterfa
 		this.metaData.getFileNumHolder().addAll(fileNumHolder);
 	}
 
+	@SuppressWarnings("static-access")
 	@Override
 	public Set<Integer> giveFilesBack(List<Integer> list) throws RemoteException {
-		// TODO Auto-generated method stub
 		Set<Integer> availData = this.metaData.getFileNumHolder();
 		Set<Integer> returnData = new HashSet<>();
 		int size = (int) Math.pow(2, this.metaData.getFingerTable().size());
@@ -416,6 +428,6 @@ public class ClientNodeMain extends UnicastRemoteObject implements ClientInterfa
 			this.metaData.getFileNumHolder().remove(integer);
 		}
 
-		return availData;
+		return returnData;
 	}
 }

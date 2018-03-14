@@ -184,7 +184,20 @@ public class CentralHubMain extends UnicastRemoteObject implements ServerInterfa
 	public void goingOffline(ClientMetaData metaData) throws RemoteException {
 		// TODO Auto-generated method stub
 		dataManager.getNodeData()[metaData.getPosition()] = null;
-		updateOtherNodes(metaData);
+		if (checkIfAllGone()) {
+			dataManager.setEmpty(true);
+		} else {
+			updateOtherNodes(metaData);
+		}
+	}
+
+	private boolean checkIfAllGone() {
+		for (ClientMetaData node : dataManager.getNodeData()) {
+			if (node != null) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	@Override
@@ -194,7 +207,10 @@ public class CentralHubMain extends UnicastRemoteObject implements ServerInterfa
 			if (i < 0) {
 				i = dataManager.getNodeData().length - 1;
 			}
-			for (i = metaData.getPosition() - 1; i != metaData.getPosition(); i--) {
+			for (i = i; i != metaData.getPosition(); i--) {
+				if (i < 0) {
+					i = dataManager.getNodeData().length - 1;
+				}
 				if (dataManager.getNodeData()[i] != null) {
 					break;
 				}
@@ -202,17 +218,19 @@ public class CentralHubMain extends UnicastRemoteObject implements ServerInterfa
 
 			List<Integer> list = new ArrayList<>();
 
-			for (int j = i + 1; j <= metaData.getPosition(); j = (j + 1) % dataManager.getNodeData().length) {
+			for (int j = i + 1; j < metaData.getPosition(); j = (j + 1) % dataManager.getNodeData().length) {
 				list.add(j);
 			}
 
-			Registry registry = LocateRegistry.getRegistry(metaData.getFingerTable().get(1).getIp(),
-					metaData.getFingerTable().get(1).getPort());
-			ClientInterface clientRef = (ClientInterface) registry
-					.lookup(metaData.getFingerTable().get(1).getObjectReference());
+			if (!list.isEmpty()) {
+				list.add(metaData.getPosition());
+				Registry registry = LocateRegistry.getRegistry(metaData.getFingerTable().get(1).getIp(),
+						metaData.getFingerTable().get(1).getPort());
+				ClientInterface clientRef = (ClientInterface) registry
+						.lookup(metaData.getFingerTable().get(1).getObjectReference());
 
-			return clientRef.giveFilesBack(list);
-
+				return clientRef.giveFilesBack(list);
+			}
 		} catch (NotBoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
